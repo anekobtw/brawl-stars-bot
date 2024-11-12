@@ -1,10 +1,12 @@
 import os
-
+import brawlstats
 import requests
-from brawlstats import Player
-from PIL import Image, ImageColor, ImageDraw, ImageEnhance, ImageFilter, ImageFont
+from PIL import (Image, ImageColor, ImageDraw, ImageEnhance, ImageFilter,
+                 ImageFont)
+from dotenv import load_dotenv
 
-
+load_dotenv()
+client = brawlstats.Client(os.getenv("BS_TOKEN"))
 def download_image(url: str, filename: str) -> str:
     """Download an image and save it locally."""
     response = requests.get(url)
@@ -14,7 +16,7 @@ def download_image(url: str, filename: str) -> str:
     else:
         image = Image.new("RGBA", (500, 500), (0, 0, 0))
         draw = ImageDraw.Draw(image)
-        font = ImageFont.truetype("LilitaOne-Regular.ttf", 60)
+        font = ImageFont.truetype("assets/LilitaOne-Regular.ttf", 60)
         draw.text((50, 200), "Image not found", font=font, fill=(255, 255, 255))
         image.save(filename)
     return filename
@@ -30,7 +32,7 @@ def download_icon(icon_id: int) -> str:
     return download_image(f"https://cdn.brawlstats.com/player-thumbnails/{icon_id}.png", f"icon - {icon_id}.png")
 
 
-def generate_description(player: Player) -> str:
+def generate_description(player: brawlstats.Player) -> str:
     """Generate description text for a player."""
     return f"""
 Trophies: {player.trophies} (highest {player.highest_trophies})
@@ -43,8 +45,15 @@ Duo showdown victories: {player.duo_victories}
 """
 
 
-def generate_profile(brawler_id: int, icon_id: int, name: str, name_color: str, description: str):
+
+def generate_profile(player: brawlstats.Player) -> str:
     """Generate a profile image for a player."""
+    # Settings
+    brawler_id = max(player.brawlers, key=lambda brawler: brawler.trophies).id
+    icon_id = player.icon.id
+    name = player.name
+    name_color = player.name_color
+    description = generate_description(player)
     profile = Image.new("RGBA", (500, 500), (0, 0, 0))
 
     # Download images
@@ -63,10 +72,11 @@ def generate_profile(brawler_id: int, icon_id: int, name: str, name_color: str, 
     # Text
     draw = ImageDraw.Draw(profile)
     color = "#" + name_color.lstrip("0x")
-    draw.text((150, 75), name, font=ImageFont.truetype("Pusia-Bold.otf", 40, encoding="UTF-8"), fill=ImageColor.getcolor(color, "RGBA"))
-    draw.text((150, 110), description, font=ImageFont.truetype("Pusia-Bold.otf", 17, encoding="UTF-8"), fill=(255, 255, 255))
+    draw.text((150, 75), name, font=ImageFont.truetype("assets/Pusia-Bold.otf", 40, encoding="UTF-8"), fill=ImageColor.getcolor(color, "RGBA"))
+    draw.text((150, 110), description, font=ImageFont.truetype("assets/Pusia-Bold.otf", 17, encoding="UTF-8"), fill=(255, 255, 255))
 
     # Save the final image
     profile.save(f"{name}.png")
     os.remove(f"brawler - {brawler_id}.png")
     os.remove(f"icon - {icon_id}.png")
+    return f"{name}.png"
