@@ -1,26 +1,30 @@
 # Write function handlers here, examples are provided below
 
+import os
+
+import brawlstats
 from aiogram import F, Router, types
 from aiogram.filters import Command
+from dotenv import load_dotenv
 
-from keyboards import get_start_kb
+import funcs
 
 router = Router()
+load_dotenv()
+client = brawlstats.Client(os.getenv("BS_TOKEN"))
 
 
-# Simple start command
 @router.message(F.text, Command("start"))
-async def start_command_handler(message: types.Message) -> None:
-    keyboard = get_start_kb()
-    await message.answer(text="Hi, how are you?", reply_markup=keyboard)
+async def start(message: types.Message) -> None: ...
 
 
-# Let's try to process the message from the buttons
-@router.message(F.text.in_(["Example 1", "Example 2"]))
-async def example_row1_handler(message: types.Message) -> None:
-    await message.answer(text="You pressed a button in the first row.")
-
-
-@router.message(F.text.in_(["Example 3", "Example 4"]))
-async def example_row2_handler(message: types.Message) -> None:
-    await message.answer(text="You pressed a button in the second row.")
+@router.message(F.text, Command("user"))
+async def user(message: types.Message) -> None:
+    try:
+        player = client.get_profile(message.text.split()[1])
+        top_brawler = max(player.brawlers, key=lambda brawler: brawler.trophies)
+        funcs.generate_profile(top_brawler.id, player.icon.id, player.name, player.name_color, funcs.generate_description(player))
+        await message.answer_photo(photo=types.FSInputFile(f"{player.name}.png"))
+        os.remove(f"{player.name}.png")
+    except Exception as e:
+        await message.answer(f"An error occurred: {e}")

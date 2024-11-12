@@ -1,11 +1,6 @@
 from aiogram import Router
 
+from . import common
 
-def get_handlers_router() -> Router:
-    from . import common, uptime
-
-    router = Router()
-    router.include_router(common.router)
-    router.include_router(uptime.router)
-
-    return router
+router = Router()
+router.include_router(common.router)
